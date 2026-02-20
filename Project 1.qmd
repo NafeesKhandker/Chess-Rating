@@ -1,0 +1,37 @@
+---
+title: "Project 1"
+author: "Khandker Qaiduzzaman"
+format: html
+editor: visual
+---
+
+# Objective
+
+Create a .CSV file from the given chess tournament results text file.
+
+# Approach
+
+### Dataset description
+
+For this project, I have chess tournament results that is stored in a text file. These given information has a specific structure and the output data should have different structure with average rating calculation for the opponents. Here are the column description of this dataset:
+
+-   Pair Num: This column provides the player's pair number, followed by their state
+-   Player Name USCF ID / Rtg (Pre-\>Post): This column provides player's name, followed by player's USCF ID (Unique ID in the US Chess system), rating before and after the tournament
+-   Total Pts: This column provides total points scored in the tournament, following by Norm information or section/tournament metadata
+-   Round 1 - Round 7: This columns provide the results of total seven rounds. We will consider the points from win (W), loss (L) and draw (D) only. There is also color information in the following row (W = white pieces, B = Black pieces), which we will discard.
+
+### Anticipated Challenges
+
+The main anticipated challenge for this project is data extraction from the text file. Since the dataset follows a specific structure, it essential to enforce some logic to navigate through the unnecessary information and extract the necessary information only.
+
+The dataset can be viewed here: <https://raw.githubusercontent.com/NafeesKhandker/Chess-Rating/refs/heads/main/tournamentinfo.txt>
+
+### Mock Output:
+
+GARY HUA, ON, 6.0, 1794, 1605
+
+DAKSHESH DARURI, MI, 6.0, 1553, 1469
+
+ADITYA BAJAJ, MI, 6.0, 1384, 1564
+
+PATRICK H SCHILLING, MI, 5.5, 1716, 1574
