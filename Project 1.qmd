@@ -35,3 +35,151 @@ DAKSHESH DARURI, MI, 6.0, 1553, 1469
 ADITYA BAJAJ, MI, 6.0, 1384, 1564
 
 PATRICK H SCHILLING, MI, 5.5, 1716, 1574
+
+### Opponent's Average Rating Calculation Using Chess Tournament Results
+
+```{r}
+library(tidyverse)
+library(gt)
+
+url <- "https://raw.githubusercontent.com/NafeesKhandker/Chess-Rating/refs/heads/main/tournamentinfo.txt"
+
+# Step 1: Read and clean lines
+lines <- read_lines(url)
+
+clean_lines <- lines %>%
+  discard(~ str_detect(.x, "^\\s*-+\\s*$")) %>%   # remove dashed lines
+  .[-c(1, 2)] %>%                                 # remove headers
+  discard(~ str_trim(.x) == "") %>%                # remove empty lines
+  discard(~ str_detect(.x, "^\\s*\\|\\s*N:"))      # remove N: rows
+
+print(clean_lines)
+```
+
+```{r}
+# Step 2: Pair player row with info row
+df_lines <- tibble(line = clean_lines) %>%
+  mutate(row_id = row_number(),
+         group = ceiling(row_id / 2))
+
+df_grouped <- df_lines %>%
+  group_by(group) %>%
+  summarise(
+    player = first(line),
+    info   = last(line),
+    .groups = "drop"
+  )
+
+df_grouped |>
+  gt()
+```
+
+```{r}
+# Step 3: Extract state and pre-rating
+df_grouped <- df_grouped %>%
+  mutate(
+    state = str_match(info, "^\\s*([A-Z]{2})\\s*\\|")[,2],
+    rating_pre = str_match(info, "R:\\s*(\\d+)")[,2]
+  )
+df_grouped |>
+  gt()
+```
+
+```{r}
+# Step 4: Split player row into columns
+df_final <- df_grouped %>%
+  separate(player,
+           into = c("pair_num", "player_name", "total_pts",
+                    "round1", "round2", "round3",
+                    "round4", "round5", "round6", "round7"),
+           sep = "\\|",
+           fill = "right") %>%
+  mutate(across(everything(), str_trim)) %>%
+  select(pair_num, player_name, total_pts,
+         round1, round2, round3, round4, round5, round6, round7,
+         state, rating_pre)
+
+
+df_final |>
+  gt() 
+```
+
+```{r}
+# Ensure numeric types
+df_final <- df_final %>%
+  mutate(
+    pair_num = as.integer(pair_num),
+    rating_pre = as.integer(rating_pre)
+  )
+print(df_final)
+```
+
+```{r}
+# Create lookup table for opponent ratings
+rating_lookup <- df_final %>%
+  select(pair_num, rating_pre) %>%
+  rename(opponent_rating = rating_pre)
+
+print(rating_lookup)
+```
+
+```{r}
+# Pivot longer for rounds
+df_long <- df_final %>%
+  pivot_longer(
+    cols = starts_with("round"),
+    names_to = "round",
+    values_to = "result"
+  )
+
+print(df_long)
+```
+
+```{r}
+df_long <- df_long %>%
+  mutate(
+    result_type = str_extract(result, "^[WLDHBUX]"),
+    opponent = as.integer(str_extract(result, "\\d+"))
+  ) %>%
+  filter(!is.na(result_type), !is.na(opponent)) %>%
+  left_join(rating_lookup, by = c("opponent" = "pair_num"))
+
+df_long
+```
+
+```{r}
+# Compute average opponent rating per player
+opp_avg <- df_long %>%
+  group_by(pair_num) %>%
+  summarise(
+    Avg_opponent_rating = round(mean(opponent_rating, na.rm = TRUE)),
+    .groups = "drop"
+  )
+print(opp_avg)
+```
+
+```{r}
+# Merge back and rename columns
+final_output <- df_final %>%
+  left_join(opp_avg, by = "pair_num") %>%
+  transmute(
+    pair_num = pair_num,
+    Player_name = player_name,
+    State = state,
+    Total_points = total_pts,
+    Rating = rating_pre,
+    Avg_opponent_rating
+  )
+
+# View the final result
+final_output |>
+  gt()
+```
+
+# Conclusion
+
+The chess tournament result dataset is very good example of unstructured data that needs to be structured. In this project, I read each line and manipulated the string to bring it to the right format. A large number of data transformation was also required to calculate the opponent's average rating.
+
+# Reference
+
+-   OpenAI. (2026, February 22). *ChatGPT response on R data manipulation and opponent rating calculation* \[Large language model\]. ChatGPT. <https://chat.openai.com/>
